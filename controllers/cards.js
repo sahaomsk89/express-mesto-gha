@@ -7,32 +7,44 @@ module.exports.getCards = (req, res) => {
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };
 
-module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-        return;
-      }
-      res.send({ data: card });
-    })
+module.exports.createCards = (req, res) => {
+  const { name, link } = req.body;
+  Card.create({ name, link, owner: req.user._id })
+    .then((card) => res.status(201).send({ data: card }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: 'id неверен' });
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Неверные данные' });
         return;
       }
       res.status(500).send({ message: 'Произошла ошибка' });
     });
 };
 
-module.exports.createCards = (req, res) => {
-  const { name, link } = req.body;
-
-  Card.create({ name, link, owner: req.user._id })
-    .then((card) => res.status(201).send({ data: card }))
+module.exports.deleteCard = (req, res) => {
+  Card.findById(req.params.cardId).then((card) => {
+    if (!card) {
+      res.status(404).send({ message: 'Карточка не найдена' });
+      return;
+    }
+    if (req.user._id === card.owner.toString()) {
+      Card.findByIdAndRemove(req.params.cardId)
+        .then(() => {
+          res.send({ data: card });
+        })
+        .catch((err) => {
+          if (err.name === 'CastError') {
+            res.status(400).send({ message: 'id неверен' });
+            return;
+          }
+          res.status(500).send({ message: 'Произошла ошибка' });
+        });
+      return;
+    }
+    res.status(403).send({ message: 'Невозможно удалить карту других пользователей' });
+  })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Неверные данные' });
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'id неверен' });
         return;
       }
       res.status(500).send({ message: 'Произошла ошибка' });

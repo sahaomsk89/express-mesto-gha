@@ -32,7 +32,7 @@ module.exports.getUserById = (req, res, next) => {
 module.exports.findUserMe = (req, res, next) => {
   User.findById(req.user._id)
     .then((users) => {
-      res.status(201).send({ data: users });
+      res.status(200).send({ data: users });
     })
     .catch((err) => next(err));
 };
